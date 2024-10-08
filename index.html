@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meetingraum Buchungssystem</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', sans-serif;
+            background-color: #F5F5F5;
+            color: #333;
+            margin: 0;
+            padding: 20px;
+        }
+        header {
+            text-align: center;
+            background-color: #84BD22;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+        }
+        h1 {
+            margin: 0;
+            color: #fff;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .date-header {
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+        }
+        .time-block {
+            border: 1px solid #299E8E;
+            border-radius: 5px;
+            padding: 20px;
+            transition: background-color 0.3s;
+            cursor: pointer;
+            background-color: #84BD22;
+            text-align: center;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5em;
+            color: black;
+        }
+        .booked {
+            background-color: #fff;
+            color: #299E8E;
+        }
+        .modal, .confirm-modal, .cancel-confirm-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content, .confirm-modal-content, .cancel-confirm-modal-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            width: 600px; /* Breite des Modals */
+            height: 400px; /* Höhe des Buchungsdetails-Fensters */
+            text-align: center;
+            position: relative;
+        }
+        .close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            cursor: pointer;
+            color: #299E8E;
+        }
+        .btn-group, .modal-footer {
+            display: flex;
+            justify-content: space-evenly; /* Gleichmäßige Verteilung */
+            margin-top: 20px;
+        }
+        .btn {
+            padding: 10px 20px;
+            background-color: #84BD22;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 1em;
+            height: 40px;
+            flex-grow: 1;
+            margin: 0 5px;
+        }
+        .btn:hover {
+            background-color: #299E8E;
+        }
+        .close-btn {
+            background-color: #299E8E;
+            margin-top: 20px;
+        }
+        .feedback-popup {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #84BD22;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+            display: none;
+            z-index: 1000;
+        }
+        .room-details {
+            margin-top: 20px;
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: left;
+        }
+        .room-details p {
+            margin: 0;
+        }
+        .booking-overview {
+            margin-top: 30px;
+        }
+        .booking-overview table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .booking-overview th, .booking-overview td {
+            padding: 10px;
+            border: 1px solid #299E8E;
+            text-align: left;
+        }
+        .booking-overview th {
+            background-color: #299E8E;
+            color: white;
+        }
+        .date-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .date-navigation button {
+            background-color: #299E8E;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            padding: 10px;
+            cursor: pointer;
+        }
+        .date-navigation button:hover {
+            background-color: #84BD22;
+        }
+        /* Stil für Eingabefelder im Buchungsdetails-Fenster */
+        input[type="text"],
+        input[type="number"] {
+            width: calc(100% - 22px); /* Die Breite auf 100% minus Padding setzen */
+            padding: 10px; /* Innenabstand hinzufügen */
+            border: 1px solid #ccc; /* Rahmen hinzufügen */
+            border-radius: 5px; /* Ecken abrunden */
+            margin-bottom: 10px; /* Abstand nach unten */
+            font-size: 1em; /* Schriftgröße */
+        }
+        /* Dropdown-Stil */
+        select {
+            width: calc(100% - 22px);
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-size: 1em;
+        }
+        /* Stil für die Eingabefelder für die benutzerdefinierten Buchungszeiten */
+        .custom-time {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .custom-time input {
+            width: 48%; /* Eingabefelder gleichmäßig verteilen */
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Meetingraum Buchungssystem</h1>
+    </header>
+    <div class="container">
+        <div class="date-navigation">
+            <button id="prevDay">&lt; Vorheriger Tag</button>
+            <div class="date-header" id="currentDate"></div>
+            <button id="nextDay">Nächster Tag &gt;</button>
+        </div>
+
+        <!-- Dropdown zur Auswahl des Meetingraums -->
+        <label for="roomSelect">Wählen Sie einen Meetingraum:</label>
+        <select id="roomSelect">
+            <option value="1">Meetingraum 1</option>
+            <option value="2">Meetingraum 2</option>
+            <option value="3">Meetingraum 3</option>
+        </select>
+
+        <h2>Buchbare Zeiten</h2>
+        <div class="custom-time">
+            <input type="text" id="customStartTime" placeholder="Startzeit (HH:MM)">
+            <input type="text" id="customEndTime" placeholder="Endzeit (HH:MM)">
+            <button id="addCustomTime" class="btn">Hinzufügen</button>
+        </div>
+        <div class="grid" id="timeSlots">
+            <!-- Zeitblöcke werden hier dynamisch hinzugefügt -->
+        </div>
+        <div class="room-details" id="roomDetails">
+            <p><strong>Maximale Teilnehmerzahl:</strong> 20</p>
+            <p><strong>Technische Ausstattung:</strong> Beamer, Whiteboard, Video-Konferenzsystem</p>
+            <p><strong>Snacks & Getränke:</strong> Verfügbar</p>
+        </div>
+
+        <!-- Buchungsübersicht -->
+        <div class="booking-overview">
+            <h2>Aktuelle Buchungen</h2>
+            <table id="bookingTable">
+                <thead>
+                    <tr>
+                        <th>Slot</th>
+                        <th>Meetingraum</th>
+                        <th>Name</th>
+                        <th>Abteilung</th>
+                        <th>Teilnehmer</th>
+                        <th>Art</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Buchungen werden hier dynamisch hinzugefügt -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Buchungs-Modal -->
+    <div class="modal" id="bookingModal">
+        <div class="modal-content">
+            <span class="close" id="closeBookingModal">&times;</span>
+            <h3>Buchungsdetails</h3>
+            <input type="text" id="nameInput" placeholder="Name">
+            <input type="text" id="departmentInput" placeholder="Abteilung">
+            <input type="number" id="participantsInput" placeholder="Anzahl Teilnehmer">
+            <div class="modal-footer">
+                <button class="btn" id="internalBtn">Intern buchen</button>
+                <button class="btn" id="externalBtn">Extern buchen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bestätigungs-Modal -->
+    <div class="confirm-modal" id="confirmModal">
+        <div class="confirm-modal-content">
+            <span class="close" id="closeConfirmModal">&times;</span>
+            <h3>Buchung bestätigen</h3>
+            <p id="confirmMessage"></p>
+            <div class="modal-footer">
+                <button class="btn" id="confirmBooking">Bestätigen</button>
+                <button class="btn" id="cancelConfirm">Abbrechen</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stornierungsbestätigung-Modal -->
+    <div class="cancel-confirm-modal" id="cancelConfirmModal">
+        <div class="cancel-confirm-modal-content">
+            <span class="close" id="closeCancelConfirmModal">&times;</span>
+            <h3>Buchung stornieren</h3>
+            <p id="cancelConfirmMessage"></p>
+            <div class="modal-footer">
+                <button class="btn" id="confirmCancel">Ja, stornieren</button>
+                <button class="btn" id="cancelCancelConfirm">Nein</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="feedback-popup" id="feedbackPopup">
+        Buchung erfolgreich!
+    </div>
+
+    <script>
+        const timeSlotsContainer = document.getElementById('timeSlots');
+        const currentDateElement = document.getElementById('currentDate');
+        const bookingModal = document.getElementById('bookingModal');
+        const closeBookingModal = document.getElementById('closeBookingModal');
+        const confirmModal = document.getElementById('confirmModal');
+        const closeConfirmModal = document.getElementById('closeConfirmModal');
+        const cancelConfirmModal = document.getElementById('cancelConfirmModal');
+        const closeCancelConfirmModal = document.getElementById('closeCancelConfirmModal');
+        const feedbackPopup = document.getElementById('feedbackPopup');
+        const bookingTableBody = document.getElementById('bookingTable').getElementsByTagName('tbody')[0];
+
+        let currentDate = new Date();
+        let bookings = []; // Array zur Speicherung von Buchungen
+
+        // Konstante für die Zeit-Slots
+        const timeSlots = [
+            "08:00 - 09:00", "09:00 - 10:00", "10:00 - 11:00",
+            "11:00 - 12:00", "12:00 - 13:00", "13:00 - 14:00",
+            "14:00 - 15:00", "15:00 - 16:00", "16:00 - 17:00"
+        ];
+
+        // Funktion zum Aktualisieren der Datumsanzeige
+        function updateDateDisplay() {
+            currentDateElement.textContent = currentDate.toLocaleDateString('de-DE', {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+        }
+
+        // Funktion zum Erstellen der Zeit-Slots
+        function createTimeSlots() {
+            timeSlotsContainer.innerHTML = ''; // Vorherige Slots löschen
+            const selectedRoom = document.getElementById('roomSelect').value;
+            timeSlots.forEach(slot => {
+                const slotElement = document.createElement('div');
+                slotElement.className = 'time-block';
+                slotElement.textContent = slot;
+                slotElement.addEventListener('click', () => openBookingModal(slot, selectedRoom));
+                timeSlotsContainer.appendChild(slotElement);
+            });
+        }
+
+        // Funktion zum Hinzufügen benutzerdefinierter Zeiten
+        document.getElementById('addCustomTime').onclick = function () {
+            const startTime = document.getElementById('customStartTime').value;
+            const endTime = document.getElementById('customEndTime').value;
+
+            if (validateTimeInput(startTime, endTime)) {
+                const customSlot = `${startTime} - ${endTime}`;
+                const slotElement = document.createElement('div');
+                slotElement.className = 'time-block';
+                slotElement.textContent = customSlot;
+                const selectedRoom = document.getElementById('roomSelect').value;
+                slotElement.addEventListener('click', () => openBookingModal(customSlot, selectedRoom));
+                timeSlotsContainer.appendChild(slotElement);
+
+                // Eingabefelder zurücksetzen
+                document.getElementById('customStartTime').value = '';
+                document.getElementById('customEndTime').value = '';
+            } else {
+                alert('Bitte geben Sie eine gültige Zeit im Format HH:MM ein.');
+            }
+        };
+
+        // Funktion zur Validierung der Zeit-Eingabe
+        function validateTimeInput(start, end) {
+            const regex = /^(0[0-9]|1[0-9]|2[0-3]):[0-5][0-9]$/;
+            return regex.test(start) && regex.test(end);
+        }
+
+        // Funktion zum Öffnen des Buchungsmodals
+        function openBookingModal(slot, room) {
+            const alreadyBooked = bookings.find(booking => booking.slot === slot && booking.room === room);
+            if (alreadyBooked) {
+                alert('Dieser Slot ist bereits gebucht.');
+                return;
+            }
+            bookingModal.style.display = 'flex';
+            document.getElementById('nameInput').value = '';
+            document.getElementById('departmentInput').value = '';
+            document.getElementById('participantsInput').value = '';
+            document.getElementById('internalBtn').onclick = () => confirmBooking(slot, room, 'Intern');
+            document.getElementById('externalBtn').onclick = () => confirmBooking(slot, room, 'Extern');
+        }
+
+        // Funktion zum Bestätigen der Buchung
+        function confirmBooking(slot, room, type) {
+            const name = document.getElementById('nameInput').value;
+            const department = document.getElementById('departmentInput').value;
+            const participants = document.getElementById('participantsInput').value;
+
+            if (!name || !department || !participants) {
+                alert('Bitte alle Felder ausfüllen.');
+                return;
+            }
+
+            const booking = { slot, room, name, department, participants, type };
+            bookings.push(booking);
+            bookingModal.style.display = 'none';
+            showFeedback('Buchung erfolgreich!');
+            createTimeSlots();
+            updateBookingTable();
+        }
+
+        // Funktion zur Aktualisierung der Buchungstabelle
+        function updateBookingTable() {
+            bookingTableBody.innerHTML = '';
+            bookings.forEach(booking => {
+                const row = bookingTableBody.insertRow();
+                row.insertCell(0).textContent = booking.slot;
+                row.insertCell(1).textContent = `Meetingraum ${booking.room}`;
+                row.insertCell(2).textContent = booking.name;
+                row.insertCell(3).textContent = booking.department;
+                row.insertCell(4).textContent = booking.participants;
+                row.insertCell(5).textContent = booking.type;
+            });
+        }
+
+        // Funktion zur Anzeige des Feedback-Popups
+        function showFeedback(message) {
+            feedbackPopup.textContent = message;
+            feedbackPopup.style.display = 'block';
+            setTimeout(() => {
+                feedbackPopup.style.display = 'none';
+            }, 3000);
+        }
+
+        // Event-Listener für das Schließen des Buchungsmodals
+        closeBookingModal.onclick = () => bookingModal.style.display = 'none';
+
+        // Event-Listener für das vorherige und nächste Datum
+        document.getElementById('prevDay').onclick = () => {
+            currentDate.setDate(currentDate.getDate() - 1);
+            updateDateDisplay();
+            createTimeSlots();
+        };
+
+        document.getElementById('nextDay').onclick = () => {
+            currentDate.setDate(currentDate.getDate() + 1);
+            updateDateDisplay();
+            createTimeSlots();
+        };
+
+        // Event-Listener für das Ändern des Dropdowns
+        document.getElementById('roomSelect').addEventListener('change', createTimeSlots);
+
+        // Initialisierung
+        updateDateDisplay();
+        createTimeSlots();
+    </script>
+</body>
+</html>
